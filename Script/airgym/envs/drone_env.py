@@ -236,7 +236,7 @@ class AirSimDroneEnv(AirSimEnv):
 
     def _get_obs(self):
         global detected
-        camera_type = "front_center" # optionally: "high_res"
+        camera_type = "high_res" # optionally: "high_res"
         self.drone_state = self.drone.getMultirotorState()
 
         self.state["prev_position"] = self.state["position"]
