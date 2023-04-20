@@ -61,7 +61,7 @@ kwargs["callback"] = callbacks
 
 # Train for a certain number of timesteps
 model.learn(
-    total_timesteps=30000, tb_log_name="Dynamic_reward_fog_max_overnight_" + str(time.time()), **kwargs
+    total_timesteps=30000, tb_log_name="Dynamic_reward_fog_max" + str(time.time()), **kwargs
 )
 
 # Save policy weights
