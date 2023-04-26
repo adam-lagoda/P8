@@ -258,6 +258,8 @@ class AirSimDroneEnv(AirSimEnv):
         self.drone.simSetCameraPose(camera_type, camera_pose)
         # self.drone.simSetCameraPose("0", camera_pose)
         
+        self.drone.
+        
         # Save the position of the drone to a csv file
         self._log_position_state(x_drone_pos, y_drone_pos, z_drone_pos)
         
