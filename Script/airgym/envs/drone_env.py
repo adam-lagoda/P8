@@ -13,6 +13,7 @@ import sys
 import gym
 from gym import spaces
 from airgym.envs.airsim_env import AirSimEnv
+import csv
 
 model_path = 'D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt'
 
@@ -256,7 +257,10 @@ class AirSimDroneEnv(AirSimEnv):
         )
         self.drone.simSetCameraPose(camera_type, camera_pose)
         # self.drone.simSetCameraPose("0", camera_pose)
-
+        
+        # Save the position of the drone to a csv file
+        self._log_position_state(x_drone_pos, y_drone_pos, z_drone_pos)
+        
         # Parse the FPV view and operate on it to get the bounding box + camera view parameters
         responses = self.drone.simGetImages(
             [
@@ -507,12 +511,16 @@ class AirSimDroneEnv(AirSimEnv):
             rotate = 0
 
         return quad_offset, rotate
-    '''
-    def _log_position_state(self, position_x, position_y, position_z):
-        new_row = ('Step',episode_length,'Pos_x', position_x, 'Pos_y', position_y, 'Pos_z', position_z)
-        ws = wb.active
-        ws.append(new_row)
 
-        wb.save('position_log.xlsx')
-        
-        return 0'''
+    def _log_position_state(self, position_x: int, position_y: int, position_z:int):
+        """Save position of the drone into a CSV file
+
+        Args:
+            position_x (int): Position in X in world coordinates
+            position_y (int): Position in Y in world coordinates
+            position_z (int): Position in Z in world coordinates
+        """
+        with open('drone_position.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['X', 'Y', 'Z'])
+            writer.writerow([position_x, position_y, position_z])
