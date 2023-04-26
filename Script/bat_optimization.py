@@ -1,4 +1,4 @@
-#Defining valuables
+# Defining valuables
 t_1 = 0
 t_2 = 0
 V = 0
@@ -10,16 +10,24 @@ t_4 = 0
 D_1 = 0
 prev_E = 0
 
+
 def calculate_reward(prev_E, curr_E):
     """
-    E = Idle mode + armed mode + Take off + flying vertically upward + 
-        hovering + payload + flying horizontally + flying vertically downward 
-
-    r consumption equation:
-    curr_E = -278.695 + 8.195t_1  + 29.027t_2  - 0.432V^2  + 3.786V + 315D + (4.917H + 275.204) t_3  + 
-    (0.311L + 1.735) t_3  + 308.709t_4  + 68.956D_1
+    E = Idle mode + armed mode + Take off + flying vertically upward +
+        hovering + payload + flying horizontally + flying vertically downward
     """
 
+    # R consumption equation:
+    curr_E = (
+        -278.695 + 8.195 * t_1 + 29.027 * t_2 - 0.432 * V
+        ^ 2
+        + 3.786 * V
+        + 315 * D
+        + (4.917 * H + 275.204) * t_3
+        + (0.311 * L + 1.735) * t_3
+        + 308.709 * t_4
+        + 68.956 * D_1
+    )
 
     # Calculate the change in energy
     delta_E = curr_E - prev_E
@@ -34,6 +42,7 @@ def calculate_reward(prev_E, curr_E):
     E_new = max(-1, min(E_new, 1))
     prev_E == curr_E
     return E_new
+
 
 """
 The function first calculates the change in energy delta_E by subtracting the previous energy value prev_E from the current energy value curr_E.
