@@ -1,5 +1,6 @@
 import airsim
 import time
+from bat_optimization import calculate_reward
 
 # Connect to the AirSim simulator
 client = airsim.MultirotorClient()
@@ -32,7 +33,7 @@ while True:
     altitude = pose.position.z_val - initial_altitude
 
     # Check if drone is hovering or flying horizontally
-    if vel.x_val == 0 and vel.y_val == 0:
+    if round(vel.x_val) == 0 and round(vel.y_val) == 0:
         # Drone is hovering
         total_hover_time += 1
     else:

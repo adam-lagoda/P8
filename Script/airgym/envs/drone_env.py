@@ -15,7 +15,7 @@ from gym import spaces
 from airgym.envs.airsim_env import AirSimEnv
 import csv
 
-model_path = 'D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt'
+model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
 
 model = torch.hub.load(
     "ultralytics/yolov5", "custom", path=model_path, force_reload=True
@@ -234,10 +234,9 @@ class AirSimDroneEnv(AirSimEnv):
         image = Image.fromarray(img2d)
         im_final = np.array(image.resize((84, 84)).convert("L"))
 
-
     def _get_obs(self):
         global detected
-        camera_type = "high_res" # optionally: "high_res"
+        camera_type = "high_res"  # optionally: "high_res"
         self.drone_state = self.drone.getMultirotorState()
 
         self.state["prev_position"] = self.state["position"]
@@ -257,12 +256,10 @@ class AirSimDroneEnv(AirSimEnv):
         )
         self.drone.simSetCameraPose(camera_type, camera_pose)
         # self.drone.simSetCameraPose("0", camera_pose)
-        
-        self.drone.
-        
+
         # Save the position of the drone to a csv file
         self._log_position_state(x_drone_pos, y_drone_pos, z_drone_pos)
-        
+
         # Parse the FPV view and operate on it to get the bounding box + camera view parameters
         responses = self.drone.simGetImages(
             [
@@ -421,12 +418,12 @@ class AirSimDroneEnv(AirSimEnv):
             print("Distance = ", self.depthDistance)
 
             # REWARD 1
-            delta_distance = self.depthDistance-self.prev_depthDistance
-            if delta_distance<-1:
+            delta_distance = self.depthDistance - self.prev_depthDistance
+            if delta_distance < -1:
                 print("Agent update - getting closer")
                 reward1 += 1
                 self.prev_depthDistance = self.depthDistance
-            elif delta_distance>1:
+            elif delta_distance > 1:
                 print("Agent update - getting further")
                 reward1 -= 1
                 self.prev_depthDistance = self.depthDistance
@@ -446,7 +443,9 @@ class AirSimDroneEnv(AirSimEnv):
             ) + self.reward_center(self.y_edge_middle, self.cam_coords["height"], 400)
             reward2 += reward_edge_center
             reward2 += self.line_maximization(
-                self.edge_coords["edge_x1"],  # how big is the line wrt to the camera view
+                self.edge_coords[
+                    "edge_x1"
+                ],  # how big is the line wrt to the camera view
                 self.edge_coords["edge_y1"],  # outputs 0-1 range
                 self.edge_coords["edge_x2"],
                 self.edge_coords["edge_y2"],
@@ -477,11 +476,11 @@ class AirSimDroneEnv(AirSimEnv):
         episode_length += 1
         print("Episode - timestep: ", episode_length)
         reward, done = self._compute_reward()
-        '''self._log_position_state(
+        """self._log_position_state(
             self.drone_state.kinematics_estimated.position.x_val,
             self.drone_state.kinematics_estimated.position.y_val,
             self.drone_state.kinematics_estimated.position.z_val
-            )'''
+            )"""
 
         return obs, reward, done, self.state
 
@@ -493,28 +492,28 @@ class AirSimDroneEnv(AirSimEnv):
         rotate = 0
         quad_offset = (0, 0, 0)
 
-        if action == 0:     # FRONT
+        if action == 0:  # FRONT
             quad_offset = (self.step_length, 0, 0)
             rotate = 0
-        elif action == 1:   # RIGHT
+        elif action == 1:  # RIGHT
             quad_offset = (0, 0, 0)
             rotate = 2
-        elif action == 2:   # LEFT
+        elif action == 2:  # LEFT
             quad_offset = (0, 0, 0)
             rotate = -2
-        elif action == 3:   # UP
+        elif action == 3:  # UP
             quad_offset = (0, 0, self.step_length)
             rotate = 0
-        elif action == 4:   # DOWN
+        elif action == 4:  # DOWN
             quad_offset = (0, 0, -self.step_length)
             rotate = 0
-        else:               # STOP
+        else:  # STOP
             quad_offset = (0, 0, 0)
             rotate = 0
 
         return quad_offset, rotate
 
-    def _log_position_state(self, position_x: int, position_y: int, position_z:int):
+    def _log_position_state(self, position_x: int, position_y: int, position_z: int):
         """Save position of the drone into a CSV file
 
         Args:
@@ -522,7 +521,61 @@ class AirSimDroneEnv(AirSimEnv):
             position_y (int): Position in Y in world coordinates
             position_z (int): Position in Z in world coordinates
         """
-        with open('drone_position.csv', mode='w', newline='') as file:
+        with open("drone_position.csv", mode="w", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow(['X', 'Y', 'Z'])
+            writer.writerow(["X", "Y", "Z"])
             writer.writerow([position_x, position_y, position_z])
+
+    def calculate_energy_consumption_reward(
+        self,
+        prev_E: float,
+        hovering: float,
+        horizontal: float,
+        vertical_up: float,
+        vertical_down: float,
+        altitude: float,
+        payload: int,
+    ) -> float:
+        """Calculate energy consumption reward.
+
+        Args:
+            prev_E (float): Previous energy consumption reward
+            hovering (float): Total hovering time
+            horizontal (float): Total horizontal flying time
+            vertical_up (float): Total vertical flying upwards distance
+            vertical_down (float): Total vertical flying downwards distance
+            altitude (float): Relative altitude of hovering
+            payload (int): Payload weight (grams)
+
+        Returns:
+            float: energy consumption reward
+
+        """
+        # E = Idle mode + armed mode + Take off + flying vertically upward +
+        #    hovering + payload + flying horizontally + flying vertically downward
+
+        # R consumption equation:
+        curr_E = (
+            -278.695 + 8.195 * 0 + 29.027 * 0 - 0.432 * 0
+            ^ 2
+            + 3.786 * 0
+            + 315 * vertical_up
+            + (4.917 * H + 275.204) * hovering
+            + (0.311 * payload + 1.735) * horizontal
+            + 308.709 * horizontal
+            + 68.956 * vertical_down
+        )
+
+        # Calculate the change in energy
+        delta_E = curr_E - prev_E
+        # Calculate the reward value
+        if delta_E == 0:
+            E_new = 1  # No energy was used, so the reward is maximum
+        else:
+            slope = -1 / prev_E
+            E_new = slope * abs(delta_E) + 1
+
+        # Ensure that the reward value is between -1 and 1
+        E_new = max(-1, min(E_new, 1))
+        prev_E == curr_E
+        return E_new

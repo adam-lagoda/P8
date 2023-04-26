@@ -1,4 +1,5 @@
 # Defining valuables
+"""
 t_1 = 0
 t_2 = 0
 V = 0
@@ -9,13 +10,14 @@ L = 0
 t_4 = 0
 D_1 = 0
 prev_E = 0
+"""
 
 
-def calculate_reward(prev_E, curr_E):
-    """
-    E = Idle mode + armed mode + Take off + flying vertically upward +
-        hovering + payload + flying horizontally + flying vertically downward
-    """
+def calculate_reward(prev_E, hovering, horizontal, vertical_up, vertical_down, payload):
+    """"""
+    #E = Idle mode + armed mode + Take off + flying vertically upward +
+    #    hovering + payload + flying horizontally + flying vertically downward
+    
 
     # R consumption equation:
     curr_E = (
