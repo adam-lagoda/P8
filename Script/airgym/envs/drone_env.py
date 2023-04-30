@@ -383,7 +383,7 @@ class AirSimDroneEnv(AirSimEnv):
 
         return maximization_value
 
-    def _compute_reward(self, action):
+    def _compute_reward(self):
         """Calculate the reward based on the taken action
 
         Args:
