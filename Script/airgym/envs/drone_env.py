@@ -30,18 +30,18 @@ detected = True
 episode_length = 0
 
 # Energy Consumption global variables
-global prev_E, prev_E_time #, hovering, horizontal, vertical_up, vertical_down, altitude, payload
+global prev_E, prev_E_time  # , hovering, horizontal, vertical_up, vertical_down, altitude, payload
 prev_E = 0
 prev_E_time = 0
 
-'''
+"""
 hovering = 0
 horizontal = 0
 vertical_up = 0
 vertical_down = 0
 altitude = 0
 payload = 0
-'''
+"""
 
 
 class AirSimDroneEnv(AirSimEnv):
@@ -55,7 +55,7 @@ class AirSimDroneEnv(AirSimEnv):
             "collision": False,
             "prev_position": np.zeros(3),
             "orientation": np.zeros(3),
-            "velocity": np.zeros(3)
+            "velocity": np.zeros(3),
         }
 
         self.cam_coords = {
@@ -384,7 +384,7 @@ class AirSimDroneEnv(AirSimEnv):
         return maximization_value
 
     def _compute_reward(self, action):
-        """ Calculate the reward based on the taken action
+        """Calculate the reward based on the taken action
 
         Args:
             action (int): int mapping to the taken action
@@ -479,13 +479,13 @@ class AirSimDroneEnv(AirSimEnv):
             )  # Smooth transition around the 30m mark
             W2 = 1 - W1
             reward = reward + W1 * reward1 + W2 * reward2
-            
+
             global prev_E_time, prev_E
             variables = self.generate_energy_consumption_variables(prev_E_time)
             reward_energy = self.calculate_energy_consumption_reward(prev_E, *variables)
             print(f"Energy consumption reward: {reward_energy}")
             reward += reward_energy
-            
+
             if episode_length >= 200 or self.depthDistance < 60.0:
                 print(
                     "Agent stopped - max time_step in episode exceeded or distance < 30m"
@@ -601,7 +601,6 @@ class AirSimDroneEnv(AirSimEnv):
         prev_E == curr_E
         return E_new
 
-
     def generate_energy_consumption_variables(self, prev_E_time_t):
         hovering_t = 0
         horizontal_t = 0
@@ -618,7 +617,11 @@ class AirSimDroneEnv(AirSimEnv):
             hovering_t += elapsed_time
 
         # Calculate total horizontal flying time
-        horizontal_t += elapsed_time if self.state["velocity"].x_val != 0 or self.state["velocity"].y_val != 0 else 0
+        horizontal_t += (
+            elapsed_time
+            if self.state["velocity"].x_val != 0 or self.state["velocity"].y_val != 0
+            else 0
+        )
 
         # Calculate total vertical flying upwards and downwards distance
         if self.state["velocity"].z_val > 0:
@@ -629,4 +632,11 @@ class AirSimDroneEnv(AirSimEnv):
         # Calculate relative altitude of hovering
         altitude_t = self.state["position"].z_val
 
-        return hovering_t, horizontal_t, vertical_up_t, vertical_down_t, altitude_t, payload_t
+        return (
+            hovering_t,
+            horizontal_t,
+            vertical_up_t,
+            vertical_down_t,
+            altitude_t,
+            payload_t,
+        )
