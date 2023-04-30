@@ -1,19 +1,20 @@
-from xml.etree.ElementTree import tostring
-import setup_path
-import airsim
-import numpy as np
-import openpyxl
+import csv
 import math
-from time import perf_counter
-from argparse import Action, ArgumentParser
-import torch
-import cv2
 import os
 import sys
+from argparse import Action, ArgumentParser
+from time import perf_counter
+from xml.etree.ElementTree import tostring
+import time
+import airsim
+import cv2
 import gym
-from gym import spaces
+import numpy as np
+import openpyxl
+import setup_path
+import torch
 from airgym.envs.airsim_env import AirSimEnv
-import csv
+from gym import spaces
 
 model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
 
@@ -22,14 +23,25 @@ model = torch.hub.load(
 )  #  local model
 print("Model has been downloaded and created")
 
-global curr_time, prev_time, detected, episode_length, row_count
+global curr_time, prev_time, detected, episode_length
 curr_time = 0
 prev_time = perf_counter()
 detected = True
 episode_length = 0
-# wb = openpyxl.load_workbook('position_log.xlsx')
-# ws = wb.active
-row_count = 0
+
+# Energy Consumption global variables
+global prev_E, prev_E_time #, hovering, horizontal, vertical_up, vertical_down, altitude, payload
+prev_E = 0
+prev_E_time = 0
+
+'''
+hovering = 0
+horizontal = 0
+vertical_up = 0
+vertical_down = 0
+altitude = 0
+payload = 0
+'''
 
 
 class AirSimDroneEnv(AirSimEnv):
@@ -42,8 +54,8 @@ class AirSimDroneEnv(AirSimEnv):
             "position": np.zeros(3),
             "collision": False,
             "prev_position": np.zeros(3),
-            "orientation": np.zeros(3)
-            # "cam_coords": np.zeros(4),
+            "orientation": np.zeros(3),
+            "velocity": np.zeros(3)
         }
 
         self.cam_coords = {
@@ -371,7 +383,15 @@ class AirSimDroneEnv(AirSimEnv):
 
         return maximization_value
 
-    def _compute_reward(self):
+    def _compute_reward(self, action):
+        """ Calculate the reward based on the taken action
+
+        Args:
+            action (int): int mapping to the taken action
+
+        Returns:
+            reward: calculated reward
+        """
         global curr_time, prev_time, detected, episode_length
 
         curr_time = perf_counter()
@@ -459,7 +479,13 @@ class AirSimDroneEnv(AirSimEnv):
             )  # Smooth transition around the 30m mark
             W2 = 1 - W1
             reward = reward + W1 * reward1 + W2 * reward2
-
+            
+            global prev_E_time, prev_E
+            variables = self.generate_energy_consumption_variables(prev_E_time)
+            reward_energy = self.calculate_energy_consumption_reward(prev_E, *variables)
+            print(f"Energy consumption reward: {reward_energy}")
+            reward += reward_energy
+            
             if episode_length >= 200 or self.depthDistance < 60.0:
                 print(
                     "Agent stopped - max time_step in episode exceeded or distance < 30m"
@@ -476,11 +502,6 @@ class AirSimDroneEnv(AirSimEnv):
         episode_length += 1
         print("Episode - timestep: ", episode_length)
         reward, done = self._compute_reward()
-        """self._log_position_state(
-            self.drone_state.kinematics_estimated.position.x_val,
-            self.drone_state.kinematics_estimated.position.y_val,
-            self.drone_state.kinematics_estimated.position.z_val
-            )"""
 
         return obs, reward, done, self.state
 
@@ -560,7 +581,7 @@ class AirSimDroneEnv(AirSimEnv):
             ^ 2
             + 3.786 * 0
             + 315 * vertical_up
-            + (4.917 * H + 275.204) * hovering
+            + (4.917 * altitude + 275.204) * hovering
             + (0.311 * payload + 1.735) * horizontal
             + 308.709 * horizontal
             + 68.956 * vertical_down
@@ -579,3 +600,33 @@ class AirSimDroneEnv(AirSimEnv):
         E_new = max(-1, min(E_new, 1))
         prev_E == curr_E
         return E_new
+
+
+    def generate_energy_consumption_variables(self, prev_E_time_t):
+        hovering_t = 0
+        horizontal_t = 0
+        vertical_up_t = 0
+        vertical_down_t = 0
+        altitude_t = 0
+        payload_t = 1000
+        # Calculate elapsed time since last call to reward function
+        current_time = time.time()
+        elapsed_time = current_time - prev_E_time_t
+
+        # Calculate total hovering time
+        if self.state["velocity"].z_val == 0:
+            hovering_t += elapsed_time
+
+        # Calculate total horizontal flying time
+        horizontal_t += elapsed_time if self.state["velocity"].x_val != 0 or self.state["velocity"].y_val != 0 else 0
+
+        # Calculate total vertical flying upwards and downwards distance
+        if self.state["velocity"].z_val > 0:
+            vertical_up_t += self.state["velocity"].z_val * elapsed_time
+        elif self.state["velocity"].z_val < 0:
+            vertical_down_t += abs(self.state["velocity"].z_val) * elapsed_time
+
+        # Calculate relative altitude of hovering
+        altitude_t = self.state["position"].z_val
+
+        return hovering_t, horizontal_t, vertical_up_t, vertical_down_t, altitude_t, payload_t
