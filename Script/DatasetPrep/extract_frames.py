@@ -3,9 +3,9 @@ from tqdm import tqdm
 
 
 video_paths = [
-    r"C:/Users/adaml/Desktop/dataset_yolo_v8/Videos/fog1.mkv",
-    r"C:/Users/adaml/Desktop/dataset_yolo_v8/Videos/fog2.mkv",
-    r"C:/Users/adaml/Desktop/dataset_yolo_v8/Videos/fog3.mkv"
+    r"C:/Users/adaml/Desktop/dataset_yolo_v8/Videos/moving_multi_high_fog.mkv",
+    r"C:/Users/adaml/Desktop/dataset_yolo_v8/Videos/moving_single_high_fog.mkv",
+    r"C:/Users/adaml/Desktop/dataset_yolo_v8/Videos/moving_single_low_fog.mkv"
     ]
 
 output_folder = r"C:/Users/adaml/Desktop/dataset_yolo_v8/images"
