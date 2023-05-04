@@ -75,7 +75,7 @@ class AirSimDroneEnv(AirSimEnv):
         }
 
         self.depthDistance = 30.0
-        self.prev_depthDistance = 30.0
+        self.prev_depthDistance = 100.0
 
         self.drone = airsim.MultirotorClient(ip=ip_address)
         self.action_space = spaces.Discrete(
@@ -284,27 +284,40 @@ class AirSimDroneEnv(AirSimEnv):
         rawImage = rawImage.reshape(response.height, response.width, 3)
         (
             rawImage,
-            self.cam_coords["xmin"],
-            self.cam_coords["ymin"],
-            self.cam_coords["xmax"],
-            self.cam_coords["ymax"],
-            self.cam_coords["width"],
-            self.cam_coords["height"],
+            xmin,
+            ymin,
+            xmax,
+            ymax,
+            width,
+            height,
             detected,
-            self.cam_coords["confidence"],
+            conf,
         ) = self.detectAndMark(rawImage)
+        
+        self.cam_coords["xmin"] = xmin
+        self.cam_coords["ymin"] = ymin
+        self.cam_coords["xmax"] = xmax
+        self.cam_coords["ymax"] = ymax
+        self.cam_coords["height"] = height
+        self.cam_coords["width"] = width
+        self.cam_coords["confidence"] = conf
 
-        self.state["collision"] = self.drone.simGetCollisionInfo().has_collided
+        collision = self.drone.simGetCollisionInfo().has_collided
+        self.state["collision"] = collision
 
         # Depth Camera
         img_depth = np.asarray(responses[1].image_data_float)
         img_depth = img_depth.reshape(responses[1].height, responses[1].width)
         img_depth[img_depth > 16000] = np.nan
         img_depth = cv2.resize(img_depth, (1920, 1080), interpolation=cv2.INTER_AREA)
-        img_depth_crop = img_depth[int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"]), int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"])]
-
+        img_depth_crop = img_depth[int(ymin) : int(ymax), int(xmin) : int(xmax)]
+        
+        self.depthDistance = int(np.nanmin(img_depth_crop))
+        print(f"Distance is {self.depthDistance}")
+        
         try:
             self.depthDistance = int(np.nanmin(img_depth_crop))
+            print(f"Distance is {self.depthDistance}")
         except:
             self.depthDistance = self.prev_depthDistance
 
@@ -421,7 +434,7 @@ class AirSimDroneEnv(AirSimEnv):
             #     episode_length = 0
             #     print("Agent update - detection lost, exiting")
 
-            print("Distance = ", self.depthDistance)
+            print(f"Distance = {self.depthDistance}m")
 
             # REWARD 1
             delta_distance = self.depthDistance - self.prev_depthDistance
