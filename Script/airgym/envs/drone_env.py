@@ -31,8 +31,8 @@ episode_length = 0
 
 # Energy Consumption global variables
 global prev_E, prev_E_time  # , hovering, horizontal, vertical_up, vertical_down, altitude, payload
-prev_E = 0
-prev_E_time = 0
+prev_E = 1
+prev_E_time = time.time()
 
 """
 hovering = 0
@@ -506,6 +506,8 @@ class AirSimDroneEnv(AirSimEnv):
         return obs, reward, done, self.state
 
     def reset(self):
+        global prev_E
+        prev_E = 1
         self._setup_flight()
         return self._get_obs()
 
@@ -577,8 +579,7 @@ class AirSimDroneEnv(AirSimEnv):
 
         # R consumption equation:
         curr_E = (
-            -278.695 + 8.195 * 0 + 29.027 * 0 - 0.432 * 0
-            ^ 2
+            -278.695 + 8.195 * 0 + 29.027 * 0 - 0.432 * pow(0,2)
             + 3.786 * 0
             + 315 * vertical_up
             + (4.917 * altitude + 275.204) * hovering
@@ -595,7 +596,7 @@ class AirSimDroneEnv(AirSimEnv):
         else:
             slope = -1 / prev_E
             E_new = slope * abs(delta_E) + 1
-
+        print(f"ACTUAL REWARD = {E_new}")
         # Ensure that the reward value is between -1 and 1
         E_new = max(-1, min(E_new, 1))
         prev_E == curr_E
@@ -613,7 +614,7 @@ class AirSimDroneEnv(AirSimEnv):
         elapsed_time = current_time - prev_E_time_t
 
         # Calculate total hovering time
-        if self.state["velocity"].z_val == 0:
+        if round(self.state["velocity"].z_val) == 0:
             hovering_t += elapsed_time
 
         # Calculate total horizontal flying time
@@ -624,14 +625,25 @@ class AirSimDroneEnv(AirSimEnv):
         )
 
         # Calculate total vertical flying upwards and downwards distance
-        if self.state["velocity"].z_val > 0:
-            vertical_up_t += self.state["velocity"].z_val * elapsed_time
-        elif self.state["velocity"].z_val < 0:
+        if -self.state["velocity"].z_val > 0:
+            vertical_up_t += -self.state["velocity"].z_val * elapsed_time
+        elif -self.state["velocity"].z_val < 0:
             vertical_down_t += abs(self.state["velocity"].z_val) * elapsed_time
 
         # Calculate relative altitude of hovering
-        altitude_t = self.state["position"].z_val
-
+        altitude_t = -self.state["position"].z_val
+        
+        
+        data = [    ['Hovering time', hovering_t],
+            ['Horizontal flying time', horizontal_t],
+            ['Vertical flying upwards distance', vertical_up_t],
+            ['Vertical flying downwards distance', vertical_down_t],
+            ['Altitude of hovering', altitude_t],
+            ['Payload weight', payload_t]
+        ]
+        from tabulate import tabulate
+        table = tabulate(data, headers=['Parameter', 'Value'])
+        print(table)
         return (
             hovering_t,
             horizontal_t,
