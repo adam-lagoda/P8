@@ -466,15 +466,15 @@ class AirSimDroneEnv(AirSimEnv):
             W2 = 1 - W1
             reward = reward + W1 * reward1 + W2 * reward2
 
-            global prev_E_time, prev_E
-            variables = self.generate_energy_consumption_variables(prev_E_time)
-            reward_energy = self.calculate_energy_consumption_reward(prev_E, *variables)
-            print(f"Energy consumption reward: {reward_energy}")
-            reward += reward_energy
+            # global prev_E_time, prev_E
+            # variables = self.generate_energy_consumption_variables(prev_E_time)
+            # reward_energy = self.calculate_energy_consumption_reward(prev_E, *variables)
+            # print(f"Energy consumption reward: {reward_energy}")
+            # reward += reward_energy
 
-            if episode_length >= 200 or self.depthDistance < 60.0:
+            if episode_length >= 200 or self.depthDistance < 50.0:
                 print(
-                    "Agent stopped - max time_step in episode exceeded or distance < 30m"
+                    "Agent stopped - max time_step in episode exceeded or distance < 50m"
                 )
                 done = 1
                 episode_length = 0
