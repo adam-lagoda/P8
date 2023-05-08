@@ -312,9 +312,6 @@ class AirSimDroneEnv(AirSimEnv):
         img_depth = cv2.resize(img_depth, (1920, 1080), interpolation=cv2.INTER_AREA)
         img_depth_crop = img_depth[int(ymin) : int(ymax), int(xmin) : int(xmax)]
         
-        self.depthDistance = int(np.nanmin(img_depth_crop))
-        print(f"Distance is {self.depthDistance}")
-        
         try:
             self.depthDistance = int(np.nanmin(img_depth_crop))
             print(f"Distance is {self.depthDistance}")
@@ -543,9 +540,9 @@ class AirSimDroneEnv(AirSimEnv):
             position_y (int): Position in Y in world coordinates
             position_z (int): Position in Z in world coordinates
         """
-        with open("drone_position.csv", mode="w", newline="") as file:
+        with open("drone_position.csv", mode="a", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow(["X", "Y", "Z"])
+            # writer.writerow(["X", "Y", "Z"])
             writer.writerow([position_x, position_y, position_z])
 
     def calculate_energy_consumption_reward(
