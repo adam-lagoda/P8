@@ -49,6 +49,7 @@ class AirSimDroneEnv(AirSimEnv):
         super().__init__(image_shape)
         self.step_length = step_length
         self.image_shape = image_shape
+        self.stepTime = 5
 
         self.state = {
             "position": np.zeros(3),
@@ -78,6 +79,10 @@ class AirSimDroneEnv(AirSimEnv):
         self.prev_depthDistance = 30.0
 
         self.drone = airsim.MultirotorClient(ip=ip_address)
+
+        self.rotorData.rotors = {"thrust": 0, "torque_scaler": 0, "speed": 0}
+        self.totalPower = 0
+
         self.action_space = spaces.Discrete(
             6
         )  # Number of possible actions/movements in the action_space
@@ -272,6 +277,23 @@ class AirSimDroneEnv(AirSimEnv):
         # Save the position of the drone to a csv file
         self._log_position_state(x_drone_pos, y_drone_pos, z_drone_pos)
 
+        # Calculate energy consumption
+        self.totalPower = 0
+        for i in range(len(self.rotorData.rotors)):
+            if i in {0, 1}:
+                power = -(
+                    self.rotorData.rotors[i]["thrust"]
+                    * self.rotorData.rotors[i]["torque_scaler"]
+                    * self.rotorData.rotors[i]["speed"]
+                )
+            else:
+                power = (
+                    self.rotorData.rotors[i]["thrust"]
+                    * self.rotorData.rotors[i]["torque_scaler"]
+                    * self.rotorData.rotors[i]["speed"]
+                )
+            self.totalPower += power
+
         # Parse the FPV view and operate on it to get the bounding box + camera view parameters
         responses = self.drone.simGetImages(
             [
@@ -301,7 +323,10 @@ class AirSimDroneEnv(AirSimEnv):
         img_depth = img_depth.reshape(responses[1].height, responses[1].width)
         img_depth[img_depth > 16000] = np.nan
         img_depth = cv2.resize(img_depth, (1920, 1080), interpolation=cv2.INTER_AREA)
-        img_depth_crop = img_depth[int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"]), int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"])]
+        img_depth_crop = img_depth[
+            int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"]),
+            int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"]),
+        ]
 
         try:
             self.depthDistance = int(np.nanmin(img_depth_crop))
@@ -314,7 +339,13 @@ class AirSimDroneEnv(AirSimEnv):
         )
 
         try:
-            _, self.cam_coords["edge_x1"], self.cam_coords["edge_y1"], self.cam_coords["edge_x2"], self.cam_coords["edge_y2"] = self.edge_detection(depth_map)
+            (
+                _,
+                self.cam_coords["edge_x1"],
+                self.cam_coords["edge_y1"],
+                self.cam_coords["edge_x2"],
+                self.cam_coords["edge_y2"],
+            ) = self.edge_detection(depth_map)
         except:
             print("No lines detected")
             self.cam_coords["edge_x1"] = 0
@@ -333,10 +364,14 @@ class AirSimDroneEnv(AirSimEnv):
             quad_offset[0],
             quad_offset[1],
             quad_offset[2],
-            5,
+            self.stepTime,
             airsim.DrivetrainType.MaxDegreeOfFreedom,
             airsim.YawMode(True, rotate),
-        ).join()
+        )
+        # Get torques from rotors DURING movement
+        time.sleep(self.stepTime / 2)  # FIX ME, not an elegant solution
+        self.rotorData = self.drone.getRotorStates()
+        time.sleep(self.stepTime / 2)
 
     # Gradient (linear) reward for the bounding box location
     def reward_center(self, center, width, limit):
@@ -471,6 +506,9 @@ class AirSimDroneEnv(AirSimEnv):
             # reward_energy = self.calculate_energy_consumption_reward(prev_E, *variables)
             # print(f"Energy consumption reward: {reward_energy}")
             # reward += reward_energy
+            energy_reward = self.calculate_torque_energy_reward(self.totalPower)
+            print(f"Energy consumption reward: {round(energy_reward, 2)}W")
+            reward += energy_reward
 
             if episode_length >= 200 or self.depthDistance < 50.0:
                 print(
@@ -617,10 +655,10 @@ class AirSimDroneEnv(AirSimEnv):
 
         # Calculate relative altitude of hovering
         altitude_t = self.state["position"].z_val
-        
+
         print(self.drone.getRotorStates())
 
-        return ( 
+        return (
             hovering_t,
             horizontal_t,
             vertical_up_t,
@@ -628,3 +666,24 @@ class AirSimDroneEnv(AirSimEnv):
             altitude_t,
             payload_t,
         )
+
+    def calculate_torque_energy_reward(self, total_energy):
+        """Linearly maps consumned energy from (0-400)[W] to (1,-1)
+
+        Args:
+            total_energy (float): Consumned energy in Watts
+
+        Returns:
+            float: Reward (-1, 1)
+        """
+        input_min = 0
+        input_max = 400
+        output_min = 1
+        output_max = -1
+
+        # Perform the linear mapping
+        energy_reward = ((total_energy - input_min) / (input_max - input_min)) * (
+            output_max - output_min
+        ) + output_min
+
+        return energy_reward
