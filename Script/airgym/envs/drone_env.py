@@ -31,8 +31,8 @@ episode_length = 0
 
 # Energy Consumption global variables
 global prev_E, prev_E_time  # , hovering, horizontal, vertical_up, vertical_down, altitude, payload
-prev_E = 0
-prev_E_time = 0
+prev_E = 1
+prev_E_time = time.time()
 
 """
 hovering = 0
@@ -76,7 +76,7 @@ class AirSimDroneEnv(AirSimEnv):
         }
 
         self.depthDistance = 30.0
-        self.prev_depthDistance = 30.0
+        self.prev_depthDistance = 100.0
 
         self.drone = airsim.MultirotorClient(ip=ip_address)
 
@@ -306,30 +306,37 @@ class AirSimDroneEnv(AirSimEnv):
         rawImage = rawImage.reshape(response.height, response.width, 3)
         (
             rawImage,
-            self.cam_coords["xmin"],
-            self.cam_coords["ymin"],
-            self.cam_coords["xmax"],
-            self.cam_coords["ymax"],
-            self.cam_coords["width"],
-            self.cam_coords["height"],
+            xmin,
+            ymin,
+            xmax,
+            ymax,
+            width,
+            height,
             detected,
-            self.cam_coords["confidence"],
+            conf,
         ) = self.detectAndMark(rawImage)
+        
+        self.cam_coords["xmin"] = xmin
+        self.cam_coords["ymin"] = ymin
+        self.cam_coords["xmax"] = xmax
+        self.cam_coords["ymax"] = ymax
+        self.cam_coords["height"] = height
+        self.cam_coords["width"] = width
+        self.cam_coords["confidence"] = conf
 
-        self.state["collision"] = self.drone.simGetCollisionInfo().has_collided
+        collision = self.drone.simGetCollisionInfo().has_collided
+        self.state["collision"] = collision
 
         # Depth Camera
         img_depth = np.asarray(responses[1].image_data_float)
         img_depth = img_depth.reshape(responses[1].height, responses[1].width)
         img_depth[img_depth > 16000] = np.nan
         img_depth = cv2.resize(img_depth, (1920, 1080), interpolation=cv2.INTER_AREA)
-        img_depth_crop = img_depth[
-            int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"]),
-            int(self.cam_coords["ymin"]) : int(self.cam_coords["ymin"]),
-        ]
-
+        img_depth_crop = img_depth[int(ymin) : int(ymax), int(xmin) : int(xmax)]
+        
         try:
             self.depthDistance = int(np.nanmin(img_depth_crop))
+            print(f"Distance is {self.depthDistance}")
         except:
             self.depthDistance = self.prev_depthDistance
 
@@ -456,7 +463,7 @@ class AirSimDroneEnv(AirSimEnv):
             #     episode_length = 0
             #     print("Agent update - detection lost, exiting")
 
-            print("Distance = ", self.depthDistance)
+            print(f"Distance = {self.depthDistance}m")
 
             # REWARD 1
             delta_distance = self.depthDistance - self.prev_depthDistance
@@ -530,6 +537,8 @@ class AirSimDroneEnv(AirSimEnv):
         return obs, reward, done, self.state
 
     def reset(self):
+        global prev_E
+        prev_E = 1
         self._setup_flight()
         return self._get_obs()
 
@@ -566,9 +575,9 @@ class AirSimDroneEnv(AirSimEnv):
             position_y (int): Position in Y in world coordinates
             position_z (int): Position in Z in world coordinates
         """
-        with open("drone_position.csv", mode="w", newline="") as file:
+        with open("drone_position.csv", mode="a", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow(["X", "Y", "Z"])
+            # writer.writerow(["X", "Y", "Z"])
             writer.writerow([position_x, position_y, position_z])
 
     def calculate_energy_consumption_reward(
@@ -601,8 +610,7 @@ class AirSimDroneEnv(AirSimEnv):
 
         # R consumption equation:
         curr_E = (
-            -278.695 + 8.195 * 0 + 29.027 * 0 - 0.432 * 0
-            ^ 2
+            -278.695 + 8.195 * 0 + 29.027 * 0 - 0.432 * pow(0,2)
             + 3.786 * 0
             + 315 * vertical_up
             + (4.917 * altitude + 275.204) * hovering
@@ -619,7 +627,7 @@ class AirSimDroneEnv(AirSimEnv):
         else:
             slope = -1 / prev_E
             E_new = slope * abs(delta_E) + 1
-
+        print(f"ACTUAL REWARD = {E_new}")
         # Ensure that the reward value is between -1 and 1
         E_new = max(-1, min(E_new, 1))
         prev_E == curr_E
@@ -637,7 +645,7 @@ class AirSimDroneEnv(AirSimEnv):
         elapsed_time = current_time - prev_E_time_t
 
         # Calculate total hovering time
-        if self.state["velocity"].z_val == 0:
+        if round(self.state["velocity"].z_val) == 0:
             hovering_t += elapsed_time
 
         # Calculate total horizontal flying time
@@ -648,16 +656,25 @@ class AirSimDroneEnv(AirSimEnv):
         )
 
         # Calculate total vertical flying upwards and downwards distance
-        if self.state["velocity"].z_val > 0:
-            vertical_up_t += self.state["velocity"].z_val * elapsed_time
-        elif self.state["velocity"].z_val < 0:
+        if -self.state["velocity"].z_val > 0:
+            vertical_up_t += -self.state["velocity"].z_val * elapsed_time
+        elif -self.state["velocity"].z_val < 0:
             vertical_down_t += abs(self.state["velocity"].z_val) * elapsed_time
 
         # Calculate relative altitude of hovering
-        altitude_t = self.state["position"].z_val
-
-        print(self.drone.getRotorStates())
-
+        altitude_t = -self.state["position"].z_val
+        
+        
+        data = [    ['Hovering time', hovering_t],
+            ['Horizontal flying time', horizontal_t],
+            ['Vertical flying upwards distance', vertical_up_t],
+            ['Vertical flying downwards distance', vertical_down_t],
+            ['Altitude of hovering', altitude_t],
+            ['Payload weight', payload_t]
+        ]
+        from tabulate import tabulate
+        table = tabulate(data, headers=['Parameter', 'Value'])
+        print(table)
         return (
             hovering_t,
             horizontal_t,

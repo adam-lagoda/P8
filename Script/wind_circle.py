@@ -15,6 +15,7 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 # connect to the AirSim simulator
 client = airsim.MultirotorClient()
 client.confirmConnection()
+
 client.enableApiControl(True)
 
 state = client.getMultirotorState()
@@ -50,13 +51,20 @@ print("state: %s" % pprint.pformat(state))
 # airsim.wait_key('Press any key to move vehicle to (-10, 10, -10) at 5 m/s')
 # client.moveToPositionAsync(-10, 10, -10, 5).join()
 
-airsim.wait_key("Press any key to move to the windturbine at 5 m/s")
+airsim.wait_key("Press any key to move to the right of the windturbine at 5 m/s")
 # client.moveToPositionAsync(33637, 332, 6,992, 5).join()
-client.moveToPositionAsync(0, 0, -150, 10).join()
-client.hoverAsync().join()
+client.moveToPositionAsync(0, 100, 0, 4).join()
 
-state = client.getMultirotorState()
-print("state: %s" % pprint.pformat(state))
+
+airsim.wait_key("Press any key to move to the left of the windturbine at 5 m/s")
+# client.moveToPositionAsync(33637, 332, 6,992, 5).join()
+client.moveToPositionAsync(0, 100, -60, 4)
+airsim.wait_key("Press any key to move to the left of the windturbine at 5 m/s")
+client.moveToPositionAsync(0, -100, -60, 4)
+airsim.wait_key("Press any key to move to the left of the windturbine at 5 m/s")
+client.moveToPositionAsync(0, -100, 20, 4)
+airsim.wait_key("Press any key to move to the left of the windturbine at 5 m/s")
+client.moveToPositionAsync(0, 100, 20, 4)
 
 # Position reset
 
