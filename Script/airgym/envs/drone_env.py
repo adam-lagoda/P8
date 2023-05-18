@@ -522,6 +522,8 @@ class AirSimDroneEnv(AirSimEnv):
             energy_reward = self.calculate_torque_energy_reward(self.totalPower)
             print(f"Energy consumption reward: {round(energy_reward, 2)}")
             reward += energy_reward
+            
+            reward += self.calculate_fog_conf_reward(self.fog_level, self.cam_coords["confidence"])
 
             if episode_length >= 200 or self.depthDistance < 50.0:
                 print(
@@ -717,3 +719,28 @@ class AirSimDroneEnv(AirSimEnv):
             energy_reward = energy_reward
 
         return energy_reward
+    def calculate_fog_conf_reward(self, x_fog, y_conf):
+        """Calculated the reward based on the visibility level and confidence score.
+
+        Args:
+            x_fog (float): Fog Level
+            y_conf (float): Object Detection Confidence
+
+        Returns:
+            float: reward
+        """        
+        if x_fog > 1:
+            x_fog = 1
+        elif x_fog < 0:
+            x_fog = 0
+        if y_conf > 1:
+            y_conf = 1
+        elif y_conf < 0:
+            y_conf = 0
+
+        if x_fog + y_conf >= 1:
+            return x_fog + y_conf - 1
+        elif (x_fog + y_conf < 1) and ((-7/5 * x_fog + 0.7) > y_conf):
+                return 2 * x_fog + (0.5/0.35) * y_conf - 1
+        elif (x_fog + y_conf < 1) and ((-7/5 * x_fog + 0.7) < y_conf):
+            return 0.0
