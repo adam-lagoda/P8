@@ -61,7 +61,7 @@ kwargs["callback"] = callbacks
 
 # Train for a certain number of timesteps
 model.learn(
-    total_timesteps=30000, tb_log_name="No_lost_detection_test_1_" + str(time.time()), **kwargs
+    total_timesteps=30000, tb_log_name="No_lost_detection_test_1_", **kwargs
 )
 
 # Save policy weights
