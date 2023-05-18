@@ -16,8 +16,8 @@ import torch
 from airgym.envs.airsim_env import AirSimEnv
 from gym import spaces
 
-# model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
-model_path = "D:/Unreal_Projects/P8/Script/path/to/bestv8.pt"
+model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
+# model_path = "D:/Unreal_Projects/P8/Script/path/to/bestv8.pt"
 
 model = torch.hub.load(
     "ultralytics/yolov5", "custom", path=model_path, force_reload=True
@@ -523,7 +523,10 @@ class AirSimDroneEnv(AirSimEnv):
             print(f"Energy consumption reward: {round(energy_reward, 2)}")
             reward += energy_reward
             
-            reward += self.calculate_fog_conf_reward(self.fog_level, self.cam_coords["confidence"])
+            fog_conf_reward = self.calculate_fog_conf_reward(self.fog_level, self.cam_coords["confidence"])
+            print(f"Fog/Confidence reward: {fog_conf_reward}")
+            reward += fog_conf_reward
+            
 
             if episode_length >= 200 or self.depthDistance < 50.0:
                 print(
@@ -739,8 +742,10 @@ class AirSimDroneEnv(AirSimEnv):
             y_conf = 0
 
         if x_fog + y_conf >= 1:
-            return x_fog + y_conf - 1
+            return float(x_fog + y_conf - 1)
         elif (x_fog + y_conf < 1) and ((-7/5 * x_fog + 0.7) > y_conf):
-                return 2 * x_fog + (0.5/0.35) * y_conf - 1
+                return float(2 * x_fog + (0.5/0.35) * y_conf - 1)
         elif (x_fog + y_conf < 1) and ((-7/5 * x_fog + 0.7) < y_conf):
-            return 0.0
+            return float(0.0)
+        else:
+            return float(-1.0)
