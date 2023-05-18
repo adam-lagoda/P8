@@ -20,4 +20,3 @@ output_dir = Path(__file__).parent.parent / log_folder
 
 args = extract_data_from_tensorboard(log_dir, rollout)
 plot_csv_logs(*args)
-print("test")
