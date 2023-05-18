@@ -45,11 +45,12 @@ payload = 0
 
 
 class AirSimDroneEnv(AirSimEnv):
-    def __init__(self, ip_address, step_length, image_shape):
+    def __init__(self, ip_address, step_length, image_shape, fog_level):
         super().__init__(image_shape)
         self.step_length = step_length
         self.image_shape = image_shape
         self.stepTime = 5
+        self.fog_level = fog_level
 
         self.state = {
             "position": np.zeros(3),

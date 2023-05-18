@@ -18,6 +18,7 @@ env = DummyVecEnv(
                 ip_address="127.0.0.1",
                 step_length=2,  # 0.25, #1
                 image_shape=(84, 84, 1),
+                fog_level = 0.5
             )
         )
     ]
