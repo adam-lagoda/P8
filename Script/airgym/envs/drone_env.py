@@ -16,7 +16,8 @@ import torch
 from airgym.envs.airsim_env import AirSimEnv
 from gym import spaces
 
-model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
+# model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
+model_path = "D:/Unreal_Projects/P8/Script/path/to/bestv8.pt"
 
 model = torch.hub.load(
     "ultralytics/yolov5", "custom", path=model_path, force_reload=True
