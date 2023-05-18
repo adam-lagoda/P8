@@ -2,10 +2,10 @@ import os
 import csv
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from pathlib import Path
-from extract_csv_tensor import extract_data_from_tensorboard
-from plot_csv import plot_csv_logs
+from lib.extract_csv_tensor import extract_data_from_tensorboard
+from lib.plot_csv import plot_csv_logs
 
-log_folder = "Torque_Reward_and_No_lost_detection_test_1_1683801433.881646_1"
+log_folder = "Torque_Reward_and_with_lost_detection_test_1_1683889158.8175397_1"
 
 # Usage example
 rollout = [
