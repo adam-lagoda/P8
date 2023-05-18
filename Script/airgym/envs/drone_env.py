@@ -16,7 +16,8 @@ import torch
 from airgym.envs.airsim_env import AirSimEnv
 from gym import spaces
 
-model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
+# model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
+model_path = "D:/Unreal_Projects/P8/Script/path/to/bestv8.pt"
 
 model = torch.hub.load(
     "ultralytics/yolov5", "custom", path=model_path, force_reload=True
@@ -81,7 +82,6 @@ class AirSimDroneEnv(AirSimEnv):
 
         self.drone = airsim.MultirotorClient(ip=ip_address)
 
-        self.rotorData.rotors = {"thrust": 0, "torque_scaler": 0, "speed": 0}
         self.totalPower = 0
 
         self.action_space = spaces.Discrete(
@@ -280,21 +280,26 @@ class AirSimDroneEnv(AirSimEnv):
 
         # Calculate energy consumption
         self.totalPower = 0
-        for i in range(len(self.rotorData.rotors)):
-            if i in {0, 1}:
-                power = -(
-                    self.rotorData.rotors[i]["thrust"]
-                    * self.rotorData.rotors[i]["torque_scaler"]
-                    * self.rotorData.rotors[i]["speed"]
-                )
-            else:
-                power = (
-                    self.rotorData.rotors[i]["thrust"]
-                    * self.rotorData.rotors[i]["torque_scaler"]
-                    * self.rotorData.rotors[i]["speed"]
-                )
-            self.totalPower += power
-
+        try:
+            for i in range(len(self.rotorData.rotors)):
+                if i in {0, 1}:
+                    power = -(
+                        self.rotorData.rotors[i]["thrust"]
+                        * self.rotorData.rotors[i]["torque_scaler"]
+                        * self.rotorData.rotors[i]["speed"]
+                    )
+                else:
+                    power = (
+                        self.rotorData.rotors[i]["thrust"]
+                        * self.rotorData.rotors[i]["torque_scaler"]
+                        * self.rotorData.rotors[i]["speed"]
+                    )
+                self.totalPower += power
+        except:
+            pass
+        
+        print(f"Energy consumption : {round(self.totalPower, 2)}W")
+        
         # Parse the FPV view and operate on it to get the bounding box + camera view parameters
         responses = self.drone.simGetImages(
             [
@@ -459,10 +464,10 @@ class AirSimDroneEnv(AirSimEnv):
             done = 1
             episode_length = 0
         else:
-            # if not detected:
-            #     done = 1
-            #     episode_length = 0
-            #     print("Agent update - detection lost, exiting")
+            if not detected:
+                done = 1
+                episode_length = 0
+                print("Agent update - detection lost, exiting")
 
             print(f"Distance = {self.depthDistance}m")
 
@@ -515,7 +520,7 @@ class AirSimDroneEnv(AirSimEnv):
             # print(f"Energy consumption reward: {reward_energy}")
             # reward += reward_energy
             energy_reward = self.calculate_torque_energy_reward(self.totalPower)
-            print(f"Energy consumption reward: {round(energy_reward, 2)}W")
+            print(f"Energy consumption reward: {round(energy_reward, 2)}")
             reward += energy_reward
 
             if episode_length >= 200 or self.depthDistance < 50.0:
@@ -694,8 +699,8 @@ class AirSimDroneEnv(AirSimEnv):
         Returns:
             float: Reward (-1, 1)
         """
-        input_min = 0
-        input_max = 400
+        input_min = 100
+        input_max = 200
         output_min = 1
         output_max = -1
 
@@ -703,5 +708,12 @@ class AirSimDroneEnv(AirSimEnv):
         energy_reward = ((total_energy - input_min) / (input_max - input_min)) * (
             output_max - output_min
         ) + output_min
+        
+        if energy_reward > 1:
+            energy_reward = 1
+        elif energy_reward < -1:
+            energy_reward = -1
+        else:
+            energy_reward = energy_reward
 
         return energy_reward
