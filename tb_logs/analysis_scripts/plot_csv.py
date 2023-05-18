@@ -1,57 +1,58 @@
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
-Data_rew = pd.read_csv('run-.-tag-rollout_ep_rew_mean.csv', header=None)
-Data_len = pd.read_csv('run-.-tag-rollout_ep_len_mean.csv', header=None)
-Data_exr = pd.read_csv('run-.-tag-rollout_exploration_rate.csv', header=None)
-Data_loss = pd.read_csv('run-.-tag-train_loss.csv', header=None)
+def plot_csv_logs(reward, length, exploration, loss):
 
-step_rew = Data_rew.iloc[:, 1].values
-value_rew = Data_rew.iloc[:, 2].values
+    step_rew = [row[0] for row in reward]
+    value_rew = [row[2] for row in reward]
 
-step_len = Data_len.iloc[:, 1].values
-value_len = Data_len.iloc[:, 2].values
+    step_len = [row[0] for row in length]
+    value_len = [row[2] for row in length]
 
-step_exr = Data_exr.iloc[:, 1].values
-value_exr = Data_exr.iloc[:, 2].values
+    step_exr = [row[0] for row in exploration]
+    value_exr = [row[2] for row in exploration]
 
-step_loss = Data_loss.iloc[:, 1].values
-value_loss = Data_loss.iloc[:, 2].values
+    step_loss = [row[0] for row in loss]
+    value_loss = [row[2] for row in loss]
 
-LineWidth = 2
+    LineWidth = 2
+    
+    mpl.rcParams['text.usetex'] = True
+    mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'  # Additional LaTeX packages if needed
 
-plt.subplot(2, 2, 1)
-plt.plot(step_rew, value_rew, linewidth=LineWidth)
-plt.ylabel('Episode length')
-plt.xlabel('Step')
-plt.title('Mean episode reward')
-plt.grid(True, which='both', linestyle='--')
-plt.minorticks_on()
+    plt.subplot(2, 2, 1)
+    plt.plot(step_rew, value_rew, linewidth=LineWidth)
+    plt.ylabel(r'\text{Episode length}')
+    plt.xlabel(r'\text{Step}')
+    plt.title(r'\text{Mean episode reward}')
+    plt.grid(True, which='both', linestyle='--')
+    plt.minorticks_on()
 
-plt.subplot(2, 2, 2)
-plt.plot(step_len, value_len, linewidth=LineWidth)
-plt.ylabel('Episode length')
-plt.xlabel('Step')
-plt.title('Mean episode length')
-plt.grid(True, which='both', linestyle='--')
-plt.minorticks_on()
+    plt.subplot(2, 2, 2)
+    plt.plot(step_len, value_len, linewidth=LineWidth)
+    plt.ylabel(r'\text{Episode length}')
+    plt.xlabel(r'\text{Step}')
+    plt.title(r'\text{Mean episode length}')
+    plt.grid(True, which='both', linestyle='--')
+    plt.minorticks_on()
 
-plt.subplot(2, 2, 3)
-plt.plot(step_exr, value_exr, linewidth=LineWidth)
-plt.ylabel('Episode length')
-plt.xlabel('Step')
-plt.title('Exploration Rate')
-plt.grid(True, which='both', linestyle='--')
-plt.minorticks_on()
+    plt.subplot(2, 2, 3)
+    plt.plot(step_exr, value_exr, linewidth=LineWidth)
+    plt.ylabel(r'\text{Episode length}')
+    plt.xlabel(r'\text{Step}')
+    plt.title(r'\text{Exploration Rate}')
+    plt.grid(True, which='both', linestyle='--')
+    plt.minorticks_on()
 
-plt.subplot(2, 2, 4)
-plt.plot(step_loss, value_loss, linewidth=LineWidth)
-plt.ylabel('Episode length')
-plt.xlabel('Step')
-plt.title('Train Loss')
-plt.grid(True, which='both', linestyle='--')
-plt.minorticks_on()
+    plt.subplot(2, 2, 4)
+    plt.plot(step_loss, value_loss, linewidth=LineWidth)
+    plt.ylabel(r'\text{Episode length}')
+    plt.xlabel(r'\text{Step}')
+    plt.title(r'\text{Train Loss}')
+    plt.grid(True, which='both', linestyle='--')
+    plt.minorticks_on()
 
-plt.suptitle('Torque-based energy consumption without continuation after lost detection')
-plt.tight_layout()
-plt.show()
+    plt.suptitle(r'\text{Torque-based energy consumption without continuation after lost detection}')
+    plt.tight_layout()
+    plt.show()
