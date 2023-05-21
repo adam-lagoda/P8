@@ -15,8 +15,10 @@ import setup_path
 import torch
 from airgym.envs.airsim_env import AirSimEnv
 from gym import spaces
+from pathlib import Path
 
-model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
+model_path = Path(__file__).parent.parent.parent / "path/to/best_WTB.pt"
+# model_path = "D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt"
 # model_path = "D:/Unreal_Projects/P8/Script/path/to/bestv8.pt"
 
 model = torch.hub.load(

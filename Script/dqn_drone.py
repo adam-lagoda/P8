@@ -62,7 +62,7 @@ kwargs["callback"] = callbacks
 
 # Train for a certain number of timesteps
 model.learn(
-    total_timesteps=10000, tb_log_name="Fog_Conf_test_1.0", **kwargs
+    total_timesteps=10000, tb_log_name="Fog_Conf_test_0.75", **kwargs
 )
 
 # Save policy weights

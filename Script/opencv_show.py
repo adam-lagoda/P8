@@ -22,9 +22,9 @@ import threading
 import pandas as pd
 
 from PIL import Image
+from pathlib import Path
 
-
-model_path = 'D:/Unreal_Projects/P8/Script/path/to/best_WTB.pt'
+model_path = Path(__file__).parent / "path/to/best_WTB.pt"
 
 model = torch.hub.load(
     "ultralytics/yolov5", "custom", path=model_path, force_reload=True
@@ -140,11 +140,11 @@ while True:
     # rawImageDepth = client.simGetImage("high_res", airsim.ImageType.DepthVis)
     # rawImageDepth = client.simGetImage("high_res", airsim.ImageType.DepthPerspective, True)
     # responses = client.simGetImages([airsim.ImageRequest("0", airsim.ImageType.DepthPlanar, True)])
-    responses = client.simGetImages(
-        [airsim.ImageRequest("high_res", airsim.ImageType.DepthPerspective, True)]
-    )
+    # responses = client.simGetImages(
+    #     [airsim.ImageRequest("high_res", airsim.ImageType.DepthPerspective, True)]
+    # )
 
-    if rawImages == None or responses == None:
+    if rawImages == None:
         print("Camera is not returning image, please check airsim for error messages")
         sys.exit(0)
     else:
@@ -152,12 +152,12 @@ while True:
         response = rawImages[0]
         rawImage = np.frombuffer(response.image_data_uint8, dtype=np.uint8)
         rawImage = rawImage.reshape(response.height, response.width, 3)
-        cv2.imshow("FPV", rawImage)
         rawImage, x_min, y_min, x_max, y_max, confidence = detectAndMark(rawImage)
+        cv2.imshow("FPV", rawImage)
 
-        confidenceData.append(confidence)
-        data = pd.DataFrame({tuple(confidenceData)})
-        data.to_excel("confidenceData.xlsx", sheet_name="sheet1", index=False)
+        # confidenceData.append(confidence)
+        # data = pd.DataFrame({tuple(confidenceData)})
+        # data.to_excel("confidenceData.xlsx", sheet_name="sheet1", index=False)
 
         if x_min == None or y_min == None or x_max == None or y_max == None:
             x_min = prev_x_min
@@ -172,38 +172,28 @@ while True:
 
         # Depth camera
 
-        img_depth = np.asarray(responses[0].image_data_float)
-        img_depth = img_depth.reshape(responses[0].height, responses[0].width)
+        # img_depth = np.asarray(responses[0].image_data_float)
+        # img_depth = img_depth.reshape(responses[0].height, responses[0].width)
         # print("Depth max:", np.nanmax(img_depth))
-        img_depth[img_depth > 16000] = np.nan
+        # img_depth[img_depth > 16000] = np.nan
 
         # print("test shape original: ", img_depth.shape)
-        img_depth = cv2.resize(img_depth, (1920, 1080), interpolation=cv2.INTER_AREA)
+        # img_depth = cv2.resize(img_depth, (1920, 1080), interpolation=cv2.INTER_AREA)
         # print("test shape interpolated: ", img_depth.shape)
 
-        img_depth = img_depth[int(y_min) : int(y_max), int(x_min) : int(x_max)]
+        # img_depth = img_depth[int(y_min) : int(y_max), int(x_min) : int(x_max)]
         # print("test shape cut: ", img_depth.shape)
 
-        x_small_val = 16000
-        y_small_val = 16000
-        x_small = 0
-        y_small = 0
+        # x_small_val = 16000
+        # y_small_val = 16000
+        # x_small = 0
+        # y_small = 0
         # print("Dimensions: ", img_depth.shape[0], " ", img_depth.shape[1])
         
         # GOOD STUFF
-        # cv2.imshow("FPV", rawImage)
+        # cv2.imshow("FPV", img_depth)
         # cv2.imshow("depth", depth_map)
-
-    frameCount = frameCount + 1
-    endTime = time.time()
-    diff = endTime - startTime
-    if diff > 1:
-        fps = frameCount
-        frameCount = 0
-        startTime = endTime
 
     key = cv2.waitKey(1) & 0xFF
     if key == 27 or key == ord("q") or key == ord("x"):
-        data = pd.DataFrame({tuple(confidenceData)})
-        data.to_excel("confidenceData.xlsx", sheet_name="sheet1", index=False)
         break
